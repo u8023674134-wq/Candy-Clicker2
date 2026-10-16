@@ -29,6 +29,8 @@
   let flushTimer = null;
   let flushing = false;
   let lastLocalPassive = Date.now();
+  let shopItems = [];
+  let shopRefreshTimer = null;
 
   const SKIN_EMOJI = {
     candy: "🍬",
@@ -61,6 +63,10 @@
     passiveEl.textContent = "⏱ " + formatNum(state.passive_income) + "/с";
     tapEmoji.textContent = SKIN_EMOJI[state.skin] || "🍬";
     tapBtn.className = "tap-btn skin-" + (state.skin || "candy");
+    if (shopRefreshTimer) clearTimeout(shopRefreshTimer);
+    shopRefreshTimer = setTimeout(function () {
+      if (shopItems.length) renderShop(shopItems);
+    }, 150);
   }
 
   function showFloat(amount) {
@@ -85,8 +91,13 @@
       state.click_power = data.user.click_power;
       state.passive_income = data.user.passive_income;
       state.skin = data.user.skin;
-      updateUI();
-      renderShop(data.shop || []);
+      shopItems = data.shop || [];
+      coinsEl.textContent = formatNum(displayCoins());
+      powerEl.textContent = "⚡ " + state.click_power;
+      passiveEl.textContent = "⏱ " + formatNum(state.passive_income) + "/с";
+      tapEmoji.textContent = SKIN_EMOJI[state.skin] || "🍬";
+      tapBtn.className = "tap-btn skin-" + (state.skin || "candy");
+      renderShop(shopItems);
     } catch (e) {
       console.error("loadMe failed", e);
       shopList.innerHTML =
@@ -143,7 +154,6 @@
       state.click_power = data.user.click_power;
       state.passive_income = data.user.passive_income;
       state.skin = data.user.skin;
-      updateUI();
       await loadMe();
       if (tg && tg.HapticFeedback) {
         tg.HapticFeedback.notificationOccurred("success");
@@ -157,6 +167,8 @@
   const TYPE_ICON = { click: "👆", passive: "⏱", skin: "🎨" };
 
   function renderShop(items) {
+    shopItems = items;
+    const coins = displayCoins();
     shopList.innerHTML = "";
     items.forEach(function (item) {
       const isSkin = item.type === "skin";
@@ -181,7 +193,7 @@
       const disabled =
         maxed ||
         (owned && isSkin && state.skin === skinName) ||
-        (!owned && item.price > displayCoins() && item.price > 0);
+        (!owned && item.price > coins && item.price > 0);
 
       div.innerHTML =
         '<div class="icon">' +
