@@ -19,7 +19,7 @@ def _user_from_init(init_data: str | None) -> dict:
 
 
 class TapRequest(BaseModel):
-    count: int = Field(ge=1, le=50)
+    count: int = Field(ge=1, le=100)
 
 
 class BuyRequest(BaseModel):
@@ -29,9 +29,7 @@ class BuyRequest(BaseModel):
 @router.get("/me")
 async def get_me(x_telegram_init_data: str | None = Header(None)):
     tg = _user_from_init(x_telegram_init_data)
-    user = await db.get_or_create_user(
-        tg["user_id"], tg.get("username"), tg.get("first_name")
-    )
+    await db.get_or_create_user(tg["user_id"], tg.get("username"), tg.get("first_name"))
     earned = await db.apply_passive(tg["user_id"])
     user = await db.get_user(tg["user_id"])
     upgrades = await db.get_all_upgrades()
@@ -46,7 +44,7 @@ async def get_me(x_telegram_init_data: str | None = Header(None)):
             "level": lvl,
             "price": price,
             "owned": lvl > 0 if u["type"] == "skin" else False,
-            "can_buy": lvl < u["max_level"] and (price == 0 or (user and user["coins"] >= price)),
+            "can_buy": lvl < u["max_level"] and (price == 0 or (user and user["coins"] + 0.01 >= price)),
         })
 
     return {
@@ -69,8 +67,8 @@ async def tap(body: TapRequest, x_telegram_init_data: str | None = Header(None))
     user = await db.get_or_create_user(tg["user_id"], tg.get("username"), tg.get("first_name"))
     await db.apply_passive(tg["user_id"])
 
-    count = min(body.count, 50)
-    power = user["click_power"]
+    count = min(body.count, 100)
+    power = max(1, int(user["click_power"]))
     gained = power * count
 
     user = await db.add_coins(tg["user_id"], gained)
@@ -90,7 +88,15 @@ async def buy(body: BuyRequest, x_telegram_init_data: str | None = Header(None))
 
     result = await db.buy_upgrade(tg["user_id"], body.upgrade_id)
     if not result["ok"]:
-        raise HTTPException(400, result.get("error", "buy_failed"))
+        user = await db.get_user(tg["user_id"])
+        raise HTTPException(
+            400,
+            {
+                "error": result.get("error", "buy_failed"),
+                "price": result.get("price"),
+                "coins": round(user["coins"], 2) if user else 0,
+            },
+        )
 
     user = result["user"]
     return {
