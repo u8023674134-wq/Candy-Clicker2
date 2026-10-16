@@ -1,8 +1,4 @@
-"""
-Candy Clicker — Telegram бот + Mini App (плоская структура для удобной загрузки на GitHub).
-
-На Render: BOT_TOKEN + WEBAPP_URL в Environment Variables.
-"""
+"""Candy Clicker — бот + Mini App."""
 from __future__ import annotations
 
 import asyncio
@@ -30,7 +26,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("clicker")
 
-STATIC_DIR = Path(__file__).parent / "static"
+ROOT = Path(__file__).parent
 
 
 @asynccontextmanager
@@ -39,17 +35,25 @@ async def lifespan(app: FastAPI):
     log.info("Database connected")
     yield
     await db.close()
-    log.info("Database closed")
 
 
 web_app = FastAPI(title="Candy Clicker", lifespan=lifespan)
 web_app.include_router(api_router)
-web_app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @web_app.get("/")
 async def index():
-    return FileResponse(STATIC_DIR / "index.html")
+    return FileResponse(ROOT / "index.html")
+
+
+@web_app.get("/style.css")
+async def style():
+    return FileResponse(ROOT / "style.css", media_type="text/css")
+
+
+@web_app.get("/game.js")
+async def game_js():
+    return FileResponse(ROOT / "game.js", media_type="application/javascript")
 
 
 @web_app.get("/health")
@@ -64,33 +68,19 @@ async def run_bot() -> None:
     )
     dp = Dispatcher()
     dp.include_router(start_router)
-
     if db._conn is None:
         await db.connect()
-
     log.info("Bot starting (polling)...")
     await dp.start_polling(bot)
 
 
 async def main() -> None:
     port = int(os.getenv("PORT", "8000"))
-
-    config = uvicorn.Config(
-        web_app,
-        host="0.0.0.0",
-        port=port,
-        log_level="info",
-        loop="asyncio",
-    )
+    config = uvicorn.Config(web_app, host="0.0.0.0", port=port, log_level="info", loop="asyncio")
     server = uvicorn.Server(config)
-
     bot_task = asyncio.create_task(run_bot())
     web_task = asyncio.create_task(server.serve())
-
-    done, pending = await asyncio.wait(
-        [bot_task, web_task],
-        return_when=asyncio.FIRST_EXCEPTION,
-    )
+    done, pending = await asyncio.wait([bot_task, web_task], return_when=asyncio.FIRST_EXCEPTION)
     for t in pending:
         t.cancel()
     for t in done:
