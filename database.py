@@ -135,7 +135,7 @@ class Database:
 
     async def spend_coins(self, user_id: int, amount: float) -> bool:
         user = await self.get_user(user_id)
-        if not user or user["coins"] < amount:
+        if not user or user["coins"] + 0.01 < amount:
             return False
         await self.conn.execute(
             "UPDATE users SET coins = coins - ?, updated_at = ? WHERE user_id = ?",
