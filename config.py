@@ -10,5 +10,8 @@ class Settings(BaseSettings):
     base_click_power: int = 1
     base_passive: float = 0.0
 
+    # Telegram Payments (Redsys TEST / LIVE provider token from BotFather)
+    payment_provider_token: str = ""
+
 
 settings = Settings()
