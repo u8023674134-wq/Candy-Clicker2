@@ -30,6 +30,7 @@
   let flushing = false;
   let shopItems = [];
   let shopRefreshTimer = null;
+  let buying = false;
 
   const SKIN_EMOJI = {
     candy: "🍬",
@@ -52,7 +53,6 @@
     return Number.isInteger(n) ? String(n) : n.toFixed(1);
   }
 
-  // Только серверные монеты + ещё не отправленные тапы (без "фейкового" пассива)
   function displayCoins() {
     return state.coins + pendingTaps * state.click_power;
   }
@@ -126,37 +126,58 @@
     }
   }
 
-  async function buyUpgrade(id) {
-    // 1) отправить все тапы  2) подтянуть реальный баланс  3) купить
-    await flushTaps();
-    try {
-      const meRes = await fetch(API + "/me", { headers: headers() });
-      if (meRes.ok) {
-        const me = await meRes.json();
-        state.coins = me.user.coins;
-        state.click_power = me.user.click_power;
-        state.passive_income = me.user.passive_income;
-        state.skin = me.user.skin;
-        shopItems = me.shop || [];
-        updateUI();
-      }
-    } catch (e) {}
+  async function syncAll() {
+    // дожимаем все несохранённые тапы
+    for (let i = 0; i < 5; i++) {
+      if (pendingTaps <= 0 && !flushing) break;
+      await flushTaps();
+      await new Promise(function (r) {
+        setTimeout(r, 80);
+      });
+    }
+    await loadMe();
+  }
 
+  async function buyUpgrade(id) {
+    if (buying) return;
+    buying = true;
     try {
+      await syncAll();
+
+      const item = shopItems.find(function (x) {
+        return x.id === id;
+      });
+      const price = item ? item.price : 0;
+      const have = state.coins;
+
+      if (price > 0 && have + 0.001 < price) {
+        alert(
+          "Не хватает монет.\nНужно: " +
+            formatNum(price) +
+            "\nЕсть: " +
+            formatNum(have)
+        );
+        return;
+      }
+
       const res = await fetch(API + "/buy", {
         method: "POST",
         headers: headers(),
         body: JSON.stringify({ upgrade_id: id }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(function () {
-          return {};
-        });
-        alert(
-          err.detail === "not_enough_coins"
-            ? "Не хватает монет (подожди синк 1 сек и нажми ещё раз)"
-            : "Не удалось купить"
-        );
+        let msg = "Не удалось купить";
+        try {
+          const err = await res.json();
+          if (err.detail === "not_enough_coins" || (err.detail && err.detail.error === "not_enough_coins")) {
+            msg =
+              "Не хватает монет.\nНужно: " +
+              formatNum(price) +
+              "\nЕсть: " +
+              formatNum(state.coins);
+          }
+        } catch (e) {}
+        alert(msg);
         await loadMe();
         return;
       }
@@ -172,6 +193,8 @@
     } catch (e) {
       console.error(e);
       alert("Ошибка сети");
+    } finally {
+      buying = false;
     }
   }
 
@@ -247,6 +270,7 @@
 
   function onTap(e) {
     e.preventDefault();
+    if (buying) return;
     const power = state.click_power;
     pendingTaps += 1;
     updateUI();
@@ -261,20 +285,19 @@
     }
 
     if (flushTimer) clearTimeout(flushTimer);
-    flushTimer = setTimeout(flushTaps, 300);
+    flushTimer = setTimeout(flushTaps, 250);
   }
 
   tapBtn.addEventListener("pointerdown", onTap);
 
-  // пассив только с сервера (раз в 5 сек подтягиваем), без накрутки на клиенте
   setInterval(function () {
-    if (document.hidden) return;
+    if (document.hidden || buying) return;
     if (pendingTaps > 0) {
       flushTaps();
     } else {
       loadMe();
     }
-  }, 5000);
+  }, 4000);
 
   loadMe();
 })();
