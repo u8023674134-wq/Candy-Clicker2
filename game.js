@@ -28,7 +28,6 @@
   let pendingTaps = 0;
   let flushTimer = null;
   let flushing = false;
-  let lastLocalPassive = Date.now();
   let shopItems = [];
   let shopRefreshTimer = null;
 
@@ -53,6 +52,7 @@
     return Number.isInteger(n) ? String(n) : n.toFixed(1);
   }
 
+  // Только серверные монеты + ещё не отправленные тапы (без "фейкового" пассива)
   function displayCoins() {
     return state.coins + pendingTaps * state.click_power;
   }
@@ -66,7 +66,7 @@
     if (shopRefreshTimer) clearTimeout(shopRefreshTimer);
     shopRefreshTimer = setTimeout(function () {
       if (shopItems.length) renderShop(shopItems);
-    }, 150);
+    }, 120);
   }
 
   function showFloat(amount) {
@@ -92,11 +92,7 @@
       state.passive_income = data.user.passive_income;
       state.skin = data.user.skin;
       shopItems = data.shop || [];
-      coinsEl.textContent = formatNum(displayCoins());
-      powerEl.textContent = "⚡ " + state.click_power;
-      passiveEl.textContent = "⏱ " + formatNum(state.passive_income) + "/с";
-      tapEmoji.textContent = SKIN_EMOJI[state.skin] || "🍬";
-      tapBtn.className = "tap-btn skin-" + (state.skin || "candy");
+      updateUI();
       renderShop(shopItems);
     } catch (e) {
       console.error("loadMe failed", e);
@@ -131,7 +127,21 @@
   }
 
   async function buyUpgrade(id) {
+    // 1) отправить все тапы  2) подтянуть реальный баланс  3) купить
     await flushTaps();
+    try {
+      const meRes = await fetch(API + "/me", { headers: headers() });
+      if (meRes.ok) {
+        const me = await meRes.json();
+        state.coins = me.user.coins;
+        state.click_power = me.user.click_power;
+        state.passive_income = me.user.passive_income;
+        state.skin = me.user.skin;
+        shopItems = me.shop || [];
+        updateUI();
+      }
+    } catch (e) {}
+
     try {
       const res = await fetch(API + "/buy", {
         method: "POST",
@@ -144,9 +154,10 @@
         });
         alert(
           err.detail === "not_enough_coins"
-            ? "Не хватает монет"
+            ? "Не хватает монет (подожди синк 1 сек и нажми ещё раз)"
             : "Не удалось купить"
         );
+        await loadMe();
         return;
       }
       const data = await res.json();
@@ -250,25 +261,20 @@
     }
 
     if (flushTimer) clearTimeout(flushTimer);
-    flushTimer = setTimeout(flushTaps, 350);
+    flushTimer = setTimeout(flushTaps, 300);
   }
 
   tapBtn.addEventListener("pointerdown", onTap);
 
+  // пассив только с сервера (раз в 5 сек подтягиваем), без накрутки на клиенте
   setInterval(function () {
-    if (state.passive_income <= 0) return;
-    const now = Date.now();
-    const dt = (now - lastLocalPassive) / 1000;
-    lastLocalPassive = now;
-    state.coins += state.passive_income * dt;
-    updateUI();
-  }, 500);
-
-  setInterval(function () {
-    flushTaps().then(function () {
+    if (document.hidden) return;
+    if (pendingTaps > 0) {
+      flushTaps();
+    } else {
       loadMe();
-    });
-  }, 20000);
+    }
+  }, 5000);
 
   loadMe();
 })();
