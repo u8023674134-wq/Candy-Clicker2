@@ -1,0 +1,16 @@
+# Опционально: Blueprint для Render
+# Можно не использовать и настроить сервис вручную в дашборде.
+services:
+  - type: web
+    name: candy-clicker
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: WEBAPP_URL
+        sync: false
+      - key: PYTHON_VERSION
+        value: "3.12.7"

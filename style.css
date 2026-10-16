@@ -1,0 +1,237 @@
+:root {
+  --bg: #0f0f13;
+  --card: #1a1a24;
+  --accent: #ff6b9d;
+  --accent2: #ffd166;
+  --text: #f5f5f7;
+  --muted: #8b8b9a;
+  --success: #4ade80;
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  user-select: none;
+}
+
+#app {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px 8px;
+  position: sticky;
+  top: 0;
+  background: linear-gradient(to bottom, var(--bg) 70%, transparent);
+  z-index: 10;
+}
+
+.balance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.6rem;
+  font-weight: 700;
+  background: var(--card);
+  padding: 10px 18px;
+  border-radius: 999px;
+  box-shadow: 0 4px 20px rgba(255, 107, 157, 0.15);
+}
+
+.coin-icon {
+  font-size: 1.4rem;
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Tap area */
+.tap-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  min-height: 280px;
+  padding: 20px;
+}
+
+.tap-btn {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: none;
+  background: radial-gradient(circle at 35% 35%, #ff8fb8, var(--accent) 60%, #c43d6e);
+  box-shadow:
+    0 0 0 8px rgba(255, 107, 157, 0.15),
+    0 12px 40px rgba(255, 107, 157, 0.4),
+    inset 0 -8px 20px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  outline: none;
+}
+
+.tap-btn:active,
+.tap-btn.pressed {
+  transform: scale(0.9);
+  box-shadow:
+    0 0 0 4px rgba(255, 107, 157, 0.25),
+    0 6px 20px rgba(255, 107, 157, 0.3),
+    inset 0 -4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.tap-emoji {
+  font-size: 5rem;
+  line-height: 1;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  pointer-events: none;
+}
+
+.hint {
+  margin-top: 20px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+/* Floating +N */
+#float-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.float {
+  position: absolute;
+  font-weight: 700;
+  font-size: 1.3rem;
+  color: var(--accent2);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  animation: float-up 0.9s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes float-up {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-80px) scale(1.2); }
+}
+
+/* Shop */
+.shop {
+  padding: 0 16px 32px;
+}
+
+.shop h2 {
+  font-size: 1.15rem;
+  margin-bottom: 12px;
+  padding-left: 4px;
+}
+
+.shop-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  border: 1px solid transparent;
+  transition: border-color 0.15s;
+}
+
+.shop-item.owned {
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.shop-item .icon {
+  font-size: 1.8rem;
+  width: 42px;
+  text-align: center;
+}
+
+.shop-item .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.shop-item .name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.shop-item .desc {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.shop-item .level {
+  font-size: 0.7rem;
+  color: var(--accent2);
+  margin-top: 2px;
+}
+
+.buy-btn {
+  background: linear-gradient(135deg, var(--accent), #ff8fb8);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.buy-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.buy-btn:not(:disabled):active {
+  transform: scale(0.95);
+}
+
+.buy-btn.owned-btn {
+  background: var(--success);
+}
+
+/* Skin variants for the big button */
+.skin-candy { background: radial-gradient(circle at 35% 35%, #ff8fb8, #ff6b9d 60%, #c43d6e); }
+.skin-cookie { background: radial-gradient(circle at 35% 35%, #f0c27a, #d4a017 60%, #8b6914); }
+.skin-star   { background: radial-gradient(circle at 35% 35%, #ffe566, #ffd166 60%, #c9a227); }
+.skin-rocket { background: radial-gradient(circle at 35% 35%, #7dd3fc, #38bdf8 60%, #0284c7); }
