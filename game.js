@@ -18,6 +18,7 @@
   const tapImg = document.getElementById("tap-img");
   const floatContainer = document.getElementById("float-container");
   const shopList = document.getElementById("shop-list");
+  const buildingsLayer = document.getElementById("buildings-layer");
 
   let state = { coins: 0, click_power: 1, passive_income: 0, skin: "lollipop" };
   let pendingTaps = 0;
@@ -26,9 +27,8 @@
   let shopItems = [];
   let shopRefreshTimer = null;
   let buying = false;
-  let activeTab = "all";
+  let activeTab = "passive";
 
-  // skin id → картинка (кликер / скин)
   const SKIN_IMG = {
     lollipop: ASSETS + "/clicker.png",
     candy: ASSETS + "/skin_candy.png",
@@ -51,33 +51,23 @@
     unicorn: ASSETS + "/skin_unicorn.png",
   };
 
-  // id апгрейда → иконка в магазине
-  const ITEM_IMG = {
-    shop_candy: ASSETS + "/building_shop_candy.png",
-    factory_candy: ASSETS + "/building_factory_candy.png",
-    pastry: ASSETS + "/building_pastry.png",
-    bakery: ASSETS + "/building_bakery.png",
-    fruit_farm: ASSETS + "/building_fruit_farm.png",
-    sweet_castle: ASSETS + "/building_sweet_castle.png",
-    candy_mine: ASSETS + "/building_candy_mine.png",
-    choco_factory: ASSETS + "/building_choco_factory.png",
-    space_factory: ASSETS + "/building_space_factory.png",
-    click_power: null,
-    golden_tap: null,
-    rainbow_tap: null,
+  // здания: картинка + позиция на сцене (left % от края)
+  const BUILDINGS = {
+    shop_candy:     { img: ASSETS + "/building_shop_candy.png",     left: 4,  z: 3 },
+    bakery:         { img: ASSETS + "/building_bakery.png",         left: 22, z: 2 },
+    factory_candy:  { img: ASSETS + "/building_factory_candy.png",  left: 40, z: 3 },
+    pastry:         { img: ASSETS + "/building_pastry.png",         left: 58, z: 2 },
+    fruit_farm:     { img: ASSETS + "/building_fruit_farm.png",     left: 76, z: 2 },
+    candy_mine:     { img: ASSETS + "/building_candy_mine.png",     left: 10, z: 1 },
+    sweet_castle:   { img: ASSETS + "/building_sweet_castle.png",   left: 48, z: 4 },
+    choco_factory:  { img: ASSETS + "/building_choco_factory.png",  left: 68, z: 3 },
+    space_factory:  { img: ASSETS + "/building_space_factory.png",  left: 28, z: 5 },
   };
 
-  const ITEM_EMOJI = {
-    click_power: "👆",
-    golden_tap: "✨",
-    rainbow_tap: "🌈",
-  };
+  const ITEM_EMOJI = { click_power: "👆", golden_tap: "✨", rainbow_tap: "🌈" };
 
   function headers() {
-    return {
-      "Content-Type": "application/json",
-      "X-Telegram-Init-Data": initData,
-    };
+    return { "Content-Type": "application/json", "X-Telegram-Init-Data": initData };
   }
 
   function formatNum(n) {
@@ -91,19 +81,58 @@
     return state.coins + pendingTaps * state.click_power;
   }
 
-  function skinSrc(skin) {
-    return SKIN_IMG[skin] || SKIN_IMG.lollipop;
-  }
-
   function updateUI() {
     coinsEl.textContent = formatNum(displayCoins());
     powerEl.textContent = "⚡ " + state.click_power;
     passiveEl.textContent = "⏱ " + formatNum(state.passive_income) + "/с";
-    tapImg.src = skinSrc(state.skin);
+    tapImg.src = SKIN_IMG[state.skin] || SKIN_IMG.lollipop;
     if (shopRefreshTimer) clearTimeout(shopRefreshTimer);
     shopRefreshTimer = setTimeout(function () {
       if (shopItems.length) renderShop(shopItems);
     }, 120);
+  }
+
+  /** Рисуем купленные здания на фоне мира */
+  function renderWorld(items) {
+    const owned = (items || []).filter(function (i) {
+      return i.type === "passive" && i.level > 0 && BUILDINGS[i.id];
+    });
+
+    buildingsLayer.innerHTML = "";
+
+    if (!owned.length) {
+      const hint = document.createElement("div");
+      hint.className = "world-empty";
+      hint.textContent = "Купи первое здание — оно появится здесь и будет приносить монеты";
+      buildingsLayer.appendChild(hint);
+      return;
+    }
+
+    owned.forEach(function (item) {
+      const conf = BUILDINGS[item.id];
+      if (!conf) return;
+
+      const wrap = document.createElement("div");
+      wrap.style.cssText =
+        "position:absolute;bottom:16%;left:" + conf.left + "%;z-index:" + conf.z + ";";
+
+      const img = document.createElement("img");
+      img.src = conf.img;
+      img.alt = item.name_ru;
+      img.className = "world-building";
+      // размер чуть растёт с уровнем
+      if (item.level >= 10) img.classList.add("lvl4");
+      else if (item.level >= 5) img.classList.add("lvl3");
+      else if (item.level >= 2) img.classList.add("lvl2");
+
+      const badge = document.createElement("div");
+      badge.className = "building-badge";
+      badge.textContent = "Lv." + item.level;
+
+      wrap.appendChild(img);
+      wrap.appendChild(badge);
+      buildingsLayer.appendChild(wrap);
+    });
   }
 
   function showFloat(amount) {
@@ -111,8 +140,9 @@
     el.className = "float";
     el.textContent = "+" + amount;
     const rect = tapBtn.getBoundingClientRect();
-    el.style.left = rect.width / 2 + (Math.random() - 0.5) * 40 + "px";
-    el.style.top = rect.height / 2 - 20 + "px";
+    const world = document.getElementById("world").getBoundingClientRect();
+    el.style.left = rect.left - world.left + rect.width / 2 + (Math.random() - 0.5) * 30 + "px";
+    el.style.top = rect.top - world.top + rect.height / 3 + "px";
     floatContainer.appendChild(el);
     setTimeout(function () { el.remove(); }, 900);
   }
@@ -129,9 +159,10 @@
       shopItems = data.shop || [];
       updateUI();
       renderShop(shopItems);
+      renderWorld(shopItems);
     } catch (e) {
       console.error("loadMe failed", e);
-      shopList.innerHTML = '<p style="color:#ff6b81;padding:12px">Ошибка загрузки. Открой игру через бота.</p>';
+      shopList.innerHTML = '<p style="color:#ff6b81;padding:12px">Ошибка загрузки. Открой через бота.</p>';
     }
   }
 
@@ -152,7 +183,6 @@
       state.click_power = data.click_power;
       updateUI();
     } catch (e) {
-      console.error("tap flush failed", e);
       pendingTaps += count;
       updateUI();
     } finally {
@@ -190,15 +220,9 @@
         await loadMe();
         return;
       }
-      const data = await res.json();
-      state.coins = data.user.coins;
-      state.click_power = data.user.click_power;
-      state.passive_income = data.user.passive_income;
-      state.skin = data.user.skin;
-      await loadMe();
+      await loadMe(); // обновит и мир, и магазин
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
     } catch (e) {
-      console.error(e);
       alert("Ошибка сети");
     } finally {
       buying = false;
@@ -208,12 +232,9 @@
   function iconHtml(item) {
     if (item.type === "skin") {
       const key = item.id.replace("skin_", "");
-      const src = SKIN_IMG[key];
-      if (src) return '<img src="' + src + '" alt="" />';
+      if (SKIN_IMG[key]) return '<img src="' + SKIN_IMG[key] + '" alt="" />';
     }
-    if (ITEM_IMG[item.id]) {
-      return '<img src="' + ITEM_IMG[item.id] + '" alt="" />';
-    }
+    if (BUILDINGS[item.id]) return '<img src="' + BUILDINGS[item.id].img + '" alt="" />';
     return '<span class="emoji">' + (ITEM_EMOJI[item.id] || "📦") + "</span>";
   }
 
@@ -234,7 +255,7 @@
       const owned = isSkin && item.level > 0;
       const maxed = item.level >= item.max_level;
       const div = document.createElement("div");
-      div.className = "shop-item" + (owned ? " owned" : "");
+      div.className = "shop-item" + ((owned || (item.type === "passive" && item.level > 0)) ? " owned" : "");
 
       let btnLabel;
       if (owned && isSkin) {
@@ -251,20 +272,26 @@
       const disabled =
         maxed ||
         (owned && isSkin && state.skin === skinName) ||
-        (!owned && item.price > coins && item.price > 0);
+        (!owned && item.price > coins && item.price > 0 && !(item.type === "passive" && item.level > 0 && item.price <= coins));
+
+      // для зданий: можно апгрейдить если хватает монет
+      let canClick = !maxed;
+      if (isSkin && owned && state.skin === skinName) canClick = false;
+      if (!isSkin && item.price > coins && item.price > 0) canClick = false;
+      if (isSkin && !owned && item.price > coins && item.price > 0) canClick = false;
 
       div.innerHTML =
         '<div class="icon">' + iconHtml(item) + "</div>" +
         '<div class="info">' +
         '<div class="name">' + item.name_ru + "</div>" +
         '<div class="desc">' + (item.description || "") + "</div>" +
-        (!isSkin ? '<div class="level">Ур. ' + item.level + "/" + item.max_level + "</div>" : "") +
+        (!isSkin ? '<div class="level">Ур. ' + item.level + "/" + item.max_level + " · +" + item.effect + "/с за ур.</div>" : "") +
         "</div>" +
-        '<button class="buy-btn ' + (owned ? "owned-btn" : "") + '" ' + (disabled ? "disabled" : "") + ">" +
+        '<button class="buy-btn ' + (owned ? "owned-btn" : "") + '" ' + (!canClick ? "disabled" : "") + ">" +
         btnLabel + "</button>";
 
       const btn = div.querySelector("button");
-      if (!disabled) {
+      if (canClick) {
         btn.addEventListener("click", function () { buyUpgrade(item.id); });
       }
       shopList.appendChild(div);
