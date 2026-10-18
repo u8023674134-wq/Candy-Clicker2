@@ -9,38 +9,62 @@
 </head>
 <body>
   <div id="app">
-    <header class="header">
+    <!-- TOP HUD -->
+    <header class="hud">
       <div class="balance">
-        <img class="coin-img" src="/assets/coin.png" alt="" width="28" height="28" />
-        <span id="coins">0</span>
+        <img src="/assets/coin.png" alt="" width="26" height="26" />
+        <div class="bal-text">
+          <span id="coins">0</span>
+          <small id="passive">+0/с</small>
+        </div>
       </div>
-      <div class="stats">
-        <span id="power" class="stat-pill">⚡ 1</span>
-        <span id="passive" class="stat-pill">⏱ 0/с</span>
+      <div class="hud-right">
+        <span id="power" class="pill">⚡ 1</span>
       </div>
     </header>
 
-    <!-- Игровой мир: здания на фоне -->
+    <!-- FULL WORLD -->
     <main class="world" id="world">
       <div class="sky"></div>
+      <div class="hills"></div>
       <div class="ground"></div>
       <div id="buildings-layer" class="buildings-layer"></div>
       <div id="float-container"></div>
+
       <button id="tap-btn" class="tap-btn" aria-label="Tap">
         <img id="tap-img" class="tap-img" src="/assets/clicker.png" alt="tap" draggable="false" />
       </button>
-      <p class="hint">Тапай!</p>
     </main>
 
-    <section class="shop" id="shop">
-      <div class="shop-tabs">
-        <button class="tab active" data-tab="passive">🏭 Здания</button>
-        <button class="tab" data-tab="click">👆 Клики</button>
-        <button class="tab" data-tab="skin">🎨 Скины</button>
-        <button class="tab" data-tab="all">Всё</button>
+    <!-- BOTTOM NAV (как в TCN / hamster-style) -->
+    <nav class="bottom-nav">
+      <button class="nav-btn active" data-panel="home">
+        <span class="nav-ico">🏠</span>
+        <span>База</span>
+      </button>
+      <button class="nav-btn" data-panel="shop">
+        <span class="nav-ico">🏭</span>
+        <span>Здания</span>
+      </button>
+      <button class="nav-btn" data-panel="click">
+        <span class="nav-ico">👆</span>
+        <span>Сила</span>
+      </button>
+      <button class="nav-btn" data-panel="skins">
+        <span class="nav-ico">🎨</span>
+        <span>Скины</span>
+      </button>
+    </nav>
+
+    <!-- SLIDE-UP PANEL -->
+    <div id="panel" class="panel hidden">
+      <div class="panel-handle"></div>
+      <div class="panel-head">
+        <h2 id="panel-title">Здания</h2>
+        <button id="panel-close" class="panel-close">✕</button>
       </div>
       <div id="shop-list" class="shop-list"></div>
-    </section>
+    </div>
   </div>
   <script src="/game.js"></script>
 </body>
