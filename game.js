@@ -51,17 +51,17 @@
     unicorn: ASSETS + "/skin_unicorn.png",
   };
 
-  // здания: картинка + позиция на сцене (left % от края)
+  // left — % от левого края; bottom — % от низа мира
   const BUILDINGS = {
-    shop_candy:     { img: ASSETS + "/building_shop_candy.png",     left: 4,  z: 3 },
-    bakery:         { img: ASSETS + "/building_bakery.png",         left: 22, z: 2 },
-    factory_candy:  { img: ASSETS + "/building_factory_candy.png",  left: 40, z: 3 },
-    pastry:         { img: ASSETS + "/building_pastry.png",         left: 58, z: 2 },
-    fruit_farm:     { img: ASSETS + "/building_fruit_farm.png",     left: 76, z: 2 },
-    candy_mine:     { img: ASSETS + "/building_candy_mine.png",     left: 10, z: 1 },
-    sweet_castle:   { img: ASSETS + "/building_sweet_castle.png",   left: 48, z: 4 },
-    choco_factory:  { img: ASSETS + "/building_choco_factory.png",  left: 68, z: 3 },
-    space_factory:  { img: ASSETS + "/building_space_factory.png",  left: 28, z: 5 },
+    shop_candy:     { img: ASSETS + "/building_shop_candy.png",     left: 3,  bottom: 12, z: 3 },
+    bakery:         { img: ASSETS + "/building_bakery.png",         left: 20, bottom: 10, z: 2 },
+    factory_candy:  { img: ASSETS + "/building_factory_candy.png",  left: 38, bottom: 11, z: 3 },
+    pastry:         { img: ASSETS + "/building_pastry.png",         left: 55, bottom: 10, z: 2 },
+    fruit_farm:     { img: ASSETS + "/building_fruit_farm.png",     left: 72, bottom: 12, z: 2 },
+    candy_mine:     { img: ASSETS + "/building_candy_mine.png",     left: 8,  bottom: 22, z: 1 },
+    sweet_castle:   { img: ASSETS + "/building_sweet_castle.png",   left: 45, bottom: 14, z: 4 },
+    choco_factory:  { img: ASSETS + "/building_choco_factory.png",  left: 65, bottom: 18, z: 3 },
+    space_factory:  { img: ASSETS + "/building_space_factory.png",  left: 25, bottom: 20, z: 5 },
   };
 
   const ITEM_EMOJI = { click_power: "👆", golden_tap: "✨", rainbow_tap: "🌈" };
@@ -92,10 +92,9 @@
     }, 120);
   }
 
-  /** Рисуем купленные здания на фоне мира */
   function renderWorld(items) {
     const owned = (items || []).filter(function (i) {
-      return i.type === "passive" && i.level > 0 && BUILDINGS[i.id];
+      return i.type === "passive" && Number(i.level) > 0 && BUILDINGS[i.id];
     });
 
     buildingsLayer.innerHTML = "";
@@ -103,7 +102,7 @@
     if (!owned.length) {
       const hint = document.createElement("div");
       hint.className = "world-empty";
-      hint.textContent = "Купи первое здание — оно появится здесь и будет приносить монеты";
+      hint.textContent = "Купи здание внизу — оно появится здесь и будет приносить монеты";
       buildingsLayer.appendChild(hint);
       return;
     }
@@ -111,23 +110,25 @@
     owned.forEach(function (item) {
       const conf = BUILDINGS[item.id];
       if (!conf) return;
+      const lvl = Number(item.level) || 1;
 
       const wrap = document.createElement("div");
-      wrap.style.cssText =
-        "position:absolute;bottom:16%;left:" + conf.left + "%;z-index:" + conf.z + ";";
+      wrap.className = "world-building-wrap";
+      wrap.style.left = conf.left + "%";
+      wrap.style.bottom = conf.bottom + "%";
+      wrap.style.zIndex = String(conf.z);
 
       const img = document.createElement("img");
       img.src = conf.img;
       img.alt = item.name_ru;
-      img.className = "world-building";
-      // размер чуть растёт с уровнем
-      if (item.level >= 10) img.classList.add("lvl4");
-      else if (item.level >= 5) img.classList.add("lvl3");
-      else if (item.level >= 2) img.classList.add("lvl2");
+      img.className = "world-building-img";
+      if (lvl >= 10) img.classList.add("lvl4");
+      else if (lvl >= 5) img.classList.add("lvl3");
+      else if (lvl >= 2) img.classList.add("lvl2");
 
       const badge = document.createElement("div");
       badge.className = "building-badge";
-      badge.textContent = "Lv." + item.level;
+      badge.textContent = "Lv." + lvl;
 
       wrap.appendChild(img);
       wrap.appendChild(badge);
@@ -220,7 +221,7 @@
         await loadMe();
         return;
       }
-      await loadMe(); // обновит и мир, и магазин
+      await loadMe();
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
     } catch (e) {
       alert("Ошибка сети");
@@ -269,16 +270,9 @@
       }
 
       const skinName = item.id.replace("skin_", "");
-      const disabled =
-        maxed ||
-        (owned && isSkin && state.skin === skinName) ||
-        (!owned && item.price > coins && item.price > 0 && !(item.type === "passive" && item.level > 0 && item.price <= coins));
-
-      // для зданий: можно апгрейдить если хватает монет
       let canClick = !maxed;
       if (isSkin && owned && state.skin === skinName) canClick = false;
-      if (!isSkin && item.price > coins && item.price > 0) canClick = false;
-      if (isSkin && !owned && item.price > coins && item.price > 0) canClick = false;
+      if (item.price > coins && item.price > 0) canClick = false;
 
       div.innerHTML =
         '<div class="icon">' + iconHtml(item) + "</div>" +
