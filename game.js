@@ -3,8 +3,8 @@
   if (tg) {
     tg.ready();
     tg.expand();
-    tg.setHeaderColor("#1a0a2e");
-    tg.setBackgroundColor("#1a0a2e");
+    try { tg.setHeaderColor("#12081f"); } catch (e) {}
+    try { tg.setBackgroundColor("#12081f"); } catch (e) {}
   }
 
   const initData = tg?.initData || "";
@@ -19,15 +19,16 @@
   const floatContainer = document.getElementById("float-container");
   const shopList = document.getElementById("shop-list");
   const buildingsLayer = document.getElementById("buildings-layer");
+  const panel = document.getElementById("panel");
+  const panelTitle = document.getElementById("panel-title");
 
   let state = { coins: 0, click_power: 1, passive_income: 0, skin: "lollipop" };
   let pendingTaps = 0;
   let flushTimer = null;
   let flushing = false;
   let shopItems = [];
-  let shopRefreshTimer = null;
   let buying = false;
-  let activeTab = "passive";
+  let activePanel = "home"; // home | shop | click | skins
 
   const SKIN_IMG = {
     lollipop: ASSETS + "/clicker.png",
@@ -51,20 +52,22 @@
     unicorn: ASSETS + "/skin_unicorn.png",
   };
 
-  // left — % от левого края; bottom — % от низа мира
+  // Слоты базы вокруг кликера (центр свободен)
   const BUILDINGS = {
-    shop_candy:     { img: ASSETS + "/building_shop_candy.png",     left: 3,  bottom: 12, z: 3 },
-    bakery:         { img: ASSETS + "/building_bakery.png",         left: 20, bottom: 10, z: 2 },
-    factory_candy:  { img: ASSETS + "/building_factory_candy.png",  left: 38, bottom: 11, z: 3 },
-    pastry:         { img: ASSETS + "/building_pastry.png",         left: 55, bottom: 10, z: 2 },
-    fruit_farm:     { img: ASSETS + "/building_fruit_farm.png",     left: 72, bottom: 12, z: 2 },
-    candy_mine:     { img: ASSETS + "/building_candy_mine.png",     left: 8,  bottom: 22, z: 1 },
-    sweet_castle:   { img: ASSETS + "/building_sweet_castle.png",   left: 45, bottom: 14, z: 4 },
-    choco_factory:  { img: ASSETS + "/building_choco_factory.png",  left: 65, bottom: 18, z: 3 },
-    space_factory:  { img: ASSETS + "/building_space_factory.png",  left: 25, bottom: 20, z: 5 },
+    shop_candy:     { img: ASSETS + "/building_shop_candy.png",     left: 4,  bottom: 30, z: 3 },
+    factory_candy:  { img: ASSETS + "/building_factory_candy.png",  left: 4,  bottom: 8,  z: 4 },
+    bakery:         { img: ASSETS + "/building_bakery.png",         left: 24, bottom: 8,  z: 3 },
+    pastry:         { img: ASSETS + "/building_pastry.png",         left: 58, bottom: 8,  z: 3 },
+    fruit_farm:     { img: ASSETS + "/building_fruit_farm.png",     left: 78, bottom: 10, z: 3 },
+    candy_mine:     { img: ASSETS + "/building_candy_mine.png",     left: 78, bottom: 32, z: 2 },
+    sweet_castle:   { img: ASSETS + "/building_sweet_castle.png",   left: 58, bottom: 30, z: 2 },
+    choco_factory:  { img: ASSETS + "/building_choco_factory.png",  left: 24, bottom: 30, z: 2 },
+    space_factory:  { img: ASSETS + "/building_space_factory.png",  left: 40, bottom: 40, z: 1 },
   };
 
   const ITEM_EMOJI = { click_power: "👆", golden_tap: "✨", rainbow_tap: "🌈" };
+  const PANEL_TITLE = { shop: "🏭 Здания", click: "👆 Сила клика", skins: "🎨 Скины" };
+  const PANEL_FILTER = { shop: "passive", click: "click", skins: "skin" };
 
   function headers() {
     return { "Content-Type": "application/json", "X-Telegram-Init-Data": initData };
@@ -84,40 +87,31 @@
   function updateUI() {
     coinsEl.textContent = formatNum(displayCoins());
     powerEl.textContent = "⚡ " + state.click_power;
-    passiveEl.textContent = "⏱ " + formatNum(state.passive_income) + "/с";
+    passiveEl.textContent = "+" + formatNum(state.passive_income) + "/с";
     tapImg.src = SKIN_IMG[state.skin] || SKIN_IMG.lollipop;
-    if (shopRefreshTimer) clearTimeout(shopRefreshTimer);
-    shopRefreshTimer = setTimeout(function () {
-      if (shopItems.length) renderShop(shopItems);
-    }, 120);
   }
 
   function renderWorld(items) {
     const owned = (items || []).filter(function (i) {
       return i.type === "passive" && Number(i.level) > 0 && BUILDINGS[i.id];
     });
-
     buildingsLayer.innerHTML = "";
-
     if (!owned.length) {
       const hint = document.createElement("div");
       hint.className = "world-empty";
-      hint.textContent = "Купи здание внизу — оно появится здесь и будет приносить монеты";
+      hint.innerHTML = "Построй первое здание<br>вкладка «Здания» внизу";
       buildingsLayer.appendChild(hint);
       return;
     }
-
     owned.forEach(function (item) {
       const conf = BUILDINGS[item.id];
       if (!conf) return;
       const lvl = Number(item.level) || 1;
-
       const wrap = document.createElement("div");
       wrap.className = "world-building-wrap";
       wrap.style.left = conf.left + "%";
       wrap.style.bottom = conf.bottom + "%";
       wrap.style.zIndex = String(conf.z);
-
       const img = document.createElement("img");
       img.src = conf.img;
       img.alt = item.name_ru;
@@ -125,11 +119,9 @@
       if (lvl >= 10) img.classList.add("lvl4");
       else if (lvl >= 5) img.classList.add("lvl3");
       else if (lvl >= 2) img.classList.add("lvl2");
-
       const badge = document.createElement("div");
       badge.className = "building-badge";
       badge.textContent = "Lv." + lvl;
-
       wrap.appendChild(img);
       wrap.appendChild(badge);
       buildingsLayer.appendChild(wrap);
@@ -142,10 +134,10 @@
     el.textContent = "+" + amount;
     const rect = tapBtn.getBoundingClientRect();
     const world = document.getElementById("world").getBoundingClientRect();
-    el.style.left = rect.left - world.left + rect.width / 2 + (Math.random() - 0.5) * 30 + "px";
-    el.style.top = rect.top - world.top + rect.height / 3 + "px";
+    el.style.left = rect.left - world.left + rect.width / 2 + (Math.random() - 0.5) * 28 + "px";
+    el.style.top = rect.top - world.top + 10 + "px";
     floatContainer.appendChild(el);
-    setTimeout(function () { el.remove(); }, 900);
+    setTimeout(function () { el.remove(); }, 850);
   }
 
   async function loadMe() {
@@ -159,11 +151,10 @@
       state.skin = data.user.skin || "lollipop";
       shopItems = data.shop || [];
       updateUI();
-      renderShop(shopItems);
       renderWorld(shopItems);
+      if (activePanel !== "home") renderShop();
     } catch (e) {
       console.error("loadMe failed", e);
-      shopList.innerHTML = '<p style="color:#ff6b81;padding:12px">Ошибка загрузки. Открой через бота.</p>';
     }
   }
 
@@ -195,7 +186,7 @@
     for (let i = 0; i < 5; i++) {
       if (pendingTaps <= 0 && !flushing) break;
       await flushTaps();
-      await new Promise(function (r) { setTimeout(r, 80); });
+      await new Promise(function (r) { setTimeout(r, 70); });
     }
     await loadMe();
   }
@@ -239,18 +230,15 @@
     return '<span class="emoji">' + (ITEM_EMOJI[item.id] || "📦") + "</span>";
   }
 
-  function renderShop(items) {
-    shopItems = items;
+  function renderShop() {
+    const filter = PANEL_FILTER[activePanel];
     const coins = displayCoins();
-    const filtered =
-      activeTab === "all" ? items : items.filter(function (i) { return i.type === activeTab; });
-
+    const filtered = shopItems.filter(function (i) { return i.type === filter; });
     shopList.innerHTML = "";
     if (!filtered.length) {
-      shopList.innerHTML = '<p style="color:#c4a8e0;padding:12px;text-align:center">Пусто</p>';
+      shopList.innerHTML = '<p style="color:#b9a3d4;padding:16px;text-align:center">Пусто</p>';
       return;
     }
-
     filtered.forEach(function (item) {
       const isSkin = item.type === "skin";
       const owned = isSkin && item.level > 0;
@@ -279,17 +267,29 @@
         '<div class="info">' +
         '<div class="name">' + item.name_ru + "</div>" +
         '<div class="desc">' + (item.description || "") + "</div>" +
-        (!isSkin ? '<div class="level">Ур. ' + item.level + "/" + item.max_level + " · +" + item.effect + "/с за ур.</div>" : "") +
+        (!isSkin ? '<div class="level">Ур. ' + item.level + "/" + item.max_level + " · +" + item.effect + "/с</div>" : "") +
         "</div>" +
         '<button class="buy-btn ' + (owned ? "owned-btn" : "") + '" ' + (!canClick ? "disabled" : "") + ">" +
         btnLabel + "</button>";
 
       const btn = div.querySelector("button");
-      if (canClick) {
-        btn.addEventListener("click", function () { buyUpgrade(item.id); });
-      }
+      if (canClick) btn.addEventListener("click", function () { buyUpgrade(item.id); });
       shopList.appendChild(div);
     });
+  }
+
+  function openPanel(name) {
+    activePanel = name;
+    document.querySelectorAll(".nav-btn").forEach(function (b) {
+      b.classList.toggle("active", b.getAttribute("data-panel") === name || (name === "home" && b.getAttribute("data-panel") === "home"));
+    });
+    if (name === "home") {
+      panel.classList.add("hidden");
+      return;
+    }
+    panelTitle.textContent = PANEL_TITLE[name] || "";
+    panel.classList.remove("hidden");
+    renderShop();
   }
 
   function onTap(e) {
@@ -307,13 +307,13 @@
 
   tapBtn.addEventListener("pointerdown", onTap);
 
-  document.querySelectorAll(".tab").forEach(function (tab) {
-    tab.addEventListener("click", function () {
-      document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
-      tab.classList.add("active");
-      activeTab = tab.getAttribute("data-tab");
-      renderShop(shopItems);
+  document.querySelectorAll(".nav-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      openPanel(btn.getAttribute("data-panel"));
     });
+  });
+  document.getElementById("panel-close").addEventListener("click", function () {
+    openPanel("home");
   });
 
   setInterval(function () {
