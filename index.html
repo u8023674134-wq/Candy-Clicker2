@@ -20,8 +20,11 @@
       </div>
     </header>
 
-    <main class="tap-area">
-      <div class="glow"></div>
+    <!-- Игровой мир: здания на фоне -->
+    <main class="world" id="world">
+      <div class="sky"></div>
+      <div class="ground"></div>
+      <div id="buildings-layer" class="buildings-layer"></div>
       <div id="float-container"></div>
       <button id="tap-btn" class="tap-btn" aria-label="Tap">
         <img id="tap-img" class="tap-img" src="/assets/clicker.png" alt="tap" draggable="false" />
@@ -31,10 +34,10 @@
 
     <section class="shop" id="shop">
       <div class="shop-tabs">
-        <button class="tab active" data-tab="all">Всё</button>
-        <button class="tab" data-tab="click">Клики</button>
-        <button class="tab" data-tab="passive">Здания</button>
-        <button class="tab" data-tab="skin">Скины</button>
+        <button class="tab active" data-tab="passive">🏭 Здания</button>
+        <button class="tab" data-tab="click">👆 Клики</button>
+        <button class="tab" data-tab="skin">🎨 Скины</button>
+        <button class="tab" data-tab="all">Всё</button>
       </div>
       <div id="shop-list" class="shop-list"></div>
     </section>
