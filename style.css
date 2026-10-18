@@ -74,20 +74,25 @@ html, body {
   z-index: 2;
 }
 
-.world-building {
+.world-building-wrap {
   position: absolute;
-  bottom: 18%;
-  width: 72px;
-  height: 72px;
-  object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   animation: popIn 0.45s ease-out;
-  transition: transform 0.2s;
 }
 
-.world-building.lvl2 { width: 82px; height: 82px; }
-.world-building.lvl3 { width: 92px; height: 92px; }
-.world-building.lvl4 { width: 100px; height: 100px; }
+.world-building-img {
+  width: 78px;
+  height: 78px;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+  display: block;
+}
+
+.world-building-img.lvl2 { width: 88px; height: 88px; }
+.world-building-img.lvl3 { width: 98px; height: 98px; }
+.world-building-img.lvl4 { width: 108px; height: 108px; }
 
 @keyframes popIn {
   0% { opacity: 0; transform: scale(0.3) translateY(20px); }
