@@ -9,34 +9,36 @@
 </head>
 <body>
   <div id="app">
-    <!-- Header -->
     <header class="header">
       <div class="balance">
-        <span class="coin-icon">🍬</span>
+        <img class="coin-img" src="/assets/coin.png" alt="" width="28" height="28" />
         <span id="coins">0</span>
       </div>
       <div class="stats">
-        <span id="power">⚡ 1</span>
-        <span id="passive">⏱ 0/с</span>
+        <span id="power" class="stat-pill">⚡ 1</span>
+        <span id="passive" class="stat-pill">⏱ 0/с</span>
       </div>
     </header>
 
-    <!-- Main tap area -->
     <main class="tap-area">
+      <div class="glow"></div>
       <div id="float-container"></div>
       <button id="tap-btn" class="tap-btn" aria-label="Tap">
-        <span id="tap-emoji" class="tap-emoji">🍬</span>
+        <img id="tap-img" class="tap-img" src="/assets/clicker.png" alt="tap" draggable="false" />
       </button>
       <p class="hint">Тапай!</p>
     </main>
 
-    <!-- Shop panel -->
     <section class="shop" id="shop">
-      <h2>🛒 Магазин</h2>
+      <div class="shop-tabs">
+        <button class="tab active" data-tab="all">Всё</button>
+        <button class="tab" data-tab="click">Клики</button>
+        <button class="tab" data-tab="passive">Здания</button>
+        <button class="tab" data-tab="skin">Скины</button>
+      </div>
       <div id="shop-list" class="shop-list"></div>
     </section>
   </div>
-
   <script src="/game.js"></script>
 </body>
 </html>
