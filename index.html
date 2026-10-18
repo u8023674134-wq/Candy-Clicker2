@@ -2,70 +2,62 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Candy Clicker</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css?v=2" />
 </head>
 <body>
   <div id="app">
-    <!-- TOP HUD -->
     <header class="hud">
       <div class="balance">
-        <img src="/assets/coin.png" alt="" width="26" height="26" />
+        <img src="/assets/coin.png" alt="" width="30" height="30" />
         <div class="bal-text">
           <span id="coins">0</span>
           <small id="passive">+0/с</small>
         </div>
       </div>
-      <div class="hud-right">
-        <span id="power" class="pill">⚡ 1</span>
-      </div>
+      <span id="power" class="pill">⚡ 1</span>
     </header>
 
-    <!-- FULL WORLD -->
     <main class="world" id="world">
       <div class="sky"></div>
       <div class="hills"></div>
       <div class="ground"></div>
-      <div id="buildings-layer" class="buildings-layer"></div>
-      <div id="float-container"></div>
 
-      <button id="tap-btn" class="tap-btn" aria-label="Tap">
-        <img id="tap-img" class="tap-img" src="/assets/clicker.png" alt="tap" draggable="false" />
-      </button>
+      <div class="stage" id="stage">
+        <div class="plaza"></div>
+        <div id="slots" class="slots"></div>
+        <button id="tap-btn" class="core" aria-label="Тап">
+          <span class="core-ring"></span>
+          <img id="tap-img" class="tap-img" src="/assets/clicker.png" alt="" draggable="false" />
+        </button>
+        <div id="pops" class="pops"></div>
+      </div>
+
+      <div id="float-container"></div>
+      <div id="toast" class="toast"></div>
     </main>
 
-    <!-- BOTTOM NAV (как в TCN / hamster-style) -->
     <nav class="bottom-nav">
-      <button class="nav-btn active" data-panel="home">
-        <span class="nav-ico">🏠</span>
-        <span>База</span>
-      </button>
-      <button class="nav-btn" data-panel="shop">
-        <span class="nav-ico">🏭</span>
-        <span>Здания</span>
-      </button>
-      <button class="nav-btn" data-panel="click">
-        <span class="nav-ico">👆</span>
-        <span>Сила</span>
-      </button>
-      <button class="nav-btn" data-panel="skins">
-        <span class="nav-ico">🎨</span>
-        <span>Скины</span>
-      </button>
+      <button class="nav-btn active" data-panel="home"><span class="nav-ico">🏠</span><span>База</span></button>
+      <button class="nav-btn" data-panel="shop"><span class="nav-ico">🏭</span><span>Здания</span></button>
+      <button class="nav-btn" data-panel="click"><span class="nav-ico">👆</span><span>Сила</span></button>
+      <button class="nav-btn" data-panel="skins"><span class="nav-ico">🎨</span><span>Скины</span></button>
     </nav>
 
-    <!-- SLIDE-UP PANEL -->
     <div id="panel" class="panel hidden">
       <div class="panel-handle"></div>
       <div class="panel-head">
         <h2 id="panel-title">Здания</h2>
-        <button id="panel-close" class="panel-close">✕</button>
+        <button id="panel-close" class="panel-close" aria-label="Закрыть">✕</button>
       </div>
       <div id="shop-list" class="shop-list"></div>
     </div>
   </div>
-  <script src="/game.js"></script>
+  <script src="/game.js?v=2"></script>
 </body>
 </html>
