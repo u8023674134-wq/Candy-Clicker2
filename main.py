@@ -20,10 +20,7 @@ from config import settings
 from database import db
 from handlers import router as start_router
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("clicker")
 
 ROOT = Path(__file__).parent
@@ -39,6 +36,10 @@ async def lifespan(app: FastAPI):
 
 web_app = FastAPI(title="Candy Clicker", lifespan=lifespan)
 web_app.include_router(api_router)
+
+assets_dir = ROOT / "assets"
+if assets_dir.is_dir():
+    web_app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
 
 @web_app.get("/")
@@ -62,10 +63,7 @@ async def health():
 
 
 async def run_bot() -> None:
-    bot = Bot(
-        token=settings.bot_token,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
-    )
+    bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     dp.include_router(start_router)
     if db._conn is None:
