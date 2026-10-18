@@ -37,9 +37,8 @@ async def lifespan(app: FastAPI):
 web_app = FastAPI(title="Candy Clicker", lifespan=lifespan)
 web_app.include_router(api_router)
 
-assets_dir = ROOT / "assets"
-if assets_dir.is_dir():
-    web_app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+# PNG лежат в корне репо → отдаём их как /assets/имя.png
+web_app.mount("/assets", StaticFiles(directory=str(ROOT)), name="assets")
 
 
 @web_app.get("/")
